@@ -3,6 +3,8 @@
  */
 package es.ubu.lsi.server;
 
+import java.net.InetAddress;
+
 import es.ubu.lsi.common.GameElement;
 
 /**
@@ -13,14 +15,25 @@ import es.ubu.lsi.common.GameElement;
  *
  */
 public class GameServerImpl implements GameServer {
-
+	
+	private final int port;
+	
 	public GameServerImpl(int port) {
-		
+		this.port = port;
 	}
 	
+	/**
+	 * Arranca el servidor.
+	 */
 	public void startup() {
-		// TODO Auto-generated method stub
-
+		// TODO: inicializa variables
+		
+		runServer();
+	}
+	
+	private void runServer() {
+		
+		runServer();
 	}
 
 	public void shutdown() {
@@ -38,9 +51,18 @@ public class GameServerImpl implements GameServer {
 
 	}
 
+	/**
+	 * Inicia el servidor.
+	 * 
+	 * @param args argumentos
+	 */
 	public static void main(String[] args) {
-		// TODO Auto-generated method stub
-
+		int port = 1500;
+		
+		GameServer server = new GameServerImpl(port);
+		
+		// Arranca el servidor
+		server.startup();
 	}
 	
 	private class ServerThreadForClient implements Runnable {

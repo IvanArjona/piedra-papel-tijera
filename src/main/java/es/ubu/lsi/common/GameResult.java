@@ -11,5 +11,5 @@ public enum GameResult {
 	WIN,
 	DRAW,
 	LOSE,
-	WAITING
+	WAITING;
 }
