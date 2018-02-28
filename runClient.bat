@@ -1,0 +1,1 @@
+mvn exec:java -Dexec.mainClass="es.ubu.lsi.client.GameClientImpl" -Dexec:args="localhost Ivan"
