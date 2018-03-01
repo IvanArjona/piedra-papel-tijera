@@ -23,36 +23,42 @@ public class GameServerImpl implements GameServer {
 	}
 	
 	/**
-	 * Arranca el servidor.
+	 * Inicia el servidor.
 	 */
 	public void startup() {
-		// TODO: inicializa variables
-		
-		runServer();
+		// TODO
 	}
 	
-	private void runServer() {
-		
-		runServer();
-	}
-
+	/**
+	 * Cierra el servidor.
+	 */
 	public void shutdown() {
-		// TODO Auto-generated method stub
-
-	}
-
-	public void broadcastRoom(GameElement element) {
-		// TODO Auto-generated method stub
-
-	}
-
-	public void remove(int id) {
-		// TODO Auto-generated method stub
+		// TODO
 
 	}
 
 	/**
-	 * Inicia el servidor.
+	 * Envía un mensaje a todos los clientes de una sala.
+	 * 
+	 * @param element elemento a enviar
+	 */
+	public void broadcastRoom(GameElement element) {
+		// TODO
+
+	}
+
+	/**
+	 * Elimina un cliente.
+	 * 
+	 * @param id id del cliente.
+	 */
+	public void remove(int id) {
+		// TODO
+
+	}
+
+	/**
+	 * Abre la aplicación del servidor.
 	 * 
 	 * @param args argumentos
 	 */
@@ -65,10 +71,20 @@ public class GameServerImpl implements GameServer {
 		server.startup();
 	}
 	
+	/**
+	 * Hilo que escucha a cada cliente.
+	 * 
+	 * @author Iván Arjona Alonso
+	 * @author Álvaro Ruifernandez Palacios
+	 *
+	 */
 	private class ServerThreadForClient implements Runnable {
 
+		/**
+		 * Espera los mensajes de cada cliente.
+		 */
 		public void run() {
-			// TODO Auto-generated method stub
+			// TODO
 			
 		}
 		

@@ -11,9 +11,28 @@ import es.ubu.lsi.common.GameElement;
  */
 public interface GameServer {
 
+	/**
+	 * Inicia el servidor.
+	 */
 	public void startup();
+	
+	/**
+	 * Cierra el servidor.
+	 */
 	public void shutdown();
+	
+	/**
+	 * Envía un mensaje a todos los clientes de una sala.
+	 * 
+	 * @param element elemento a enviar
+	 */
 	public void broadcastRoom(GameElement element);
+	
+	/**
+	 * Elimina un cliente.
+	 * 
+	 * @param id id del cliente.
+	 */
 	public void remove(int id);
 
 }

@@ -36,7 +36,9 @@ public class GameClientImpl implements GameClient {
 	}
 	
 	/**
-	 * Inicia el hilo de escucha del cliente.
+	 * Inicia el cliente.
+	 * 
+	 * @return true si se ha arrancado, false si no
 	 */
 	public boolean start() {
 		// Inicia el hilo para escuchar al servidor
@@ -46,23 +48,25 @@ public class GameClientImpl implements GameClient {
 		// TODO: Esto está mal
 		return true;
 	}
-	
-	private void leeCaracteres() {
-		
-	}
 
+	/**
+	 * Manda la acción a realizar al servidor. 
+	 * 
+	 * @param element elemento a mandar
+	 */
 	public void sendElement(GameElement element) {
-		// TODO Auto-generated method stub
-
+		// TODO
 	}
 
+	/**
+	 * Sale del juego.
+	 */
 	public void disconnect() {
-		// TODO Auto-generated method stub
-
+		// TODO
 	}
 	
 	/**
-	 * Inicializa el objeto cliente.
+	 * Abre la aplicación del cliente.
 	 * 
 	 * @param args argumentos
 	 * @throws UnknownHostException Host desconocido
@@ -87,10 +91,17 @@ public class GameClientImpl implements GameClient {
 		GameClient client = new GameClientImpl(server, port, username);
 	}
 
-	public class GameClientListener implements Runnable {
+	/**
+	 * Hilo que escucha las respuesta del servidor.
+	 * 
+	 * @author Iván Arjona Alonso
+	 * @author Álvaro Ruifernandez Palacios
+	 * 
+	 */
+	private class GameClientListener implements Runnable {
 
 		public void run() {
-			// TODO Auto-generated method stub
+			// TODO
 			
 		}
 		
