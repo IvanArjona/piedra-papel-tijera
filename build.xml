@@ -7,6 +7,7 @@
 
 	<!-- Directorios -->
 	<property name="source.dir" location="src" />
+	<property name="main.dir" location="src/main/java" />
 	<property name="build.dir" location="bin" />
 	<property name="docs.dir" location="docs" />
 	
@@ -29,7 +30,7 @@
 
 	<!-- Genera la documentación -->
     <target name="javadoc" depends="create" description="Genera la documentación con javadoc">
-    	<javadoc sourcepath="${source.dir}" destdir="${docs.dir}" encoding="utf-8" packagenames="*" />
+    	<javadoc sourcepath="${main.dir}" destdir="${docs.dir}" encoding="utf-8" packagenames="*" />
     </target>
 	
 	<!-- Todas las acciones -->

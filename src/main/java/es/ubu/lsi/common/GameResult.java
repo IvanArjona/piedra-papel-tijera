@@ -4,7 +4,7 @@ package es.ubu.lsi.common;
  * Posibles resultados de una partida.
  * 
  * @author Iván Arjona Alonso
- * @authro Álvaro Ruifernandez Palacios
+ * @author Álvaro Ruifernandez Palacios
  *
  */
 public enum GameResult {
