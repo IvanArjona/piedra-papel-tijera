@@ -1,0 +1,39 @@
+<?xml version="1.0"?>
+
+<project name="piedra-papel-tijera" default="all" basedir=".">
+    <description>
+		Piedra, papel, tijera
+    </description>
+
+	<!-- Directorios -->
+	<property name="source.dir" location="src" />
+	<property name="build.dir" location="bin" />
+	<property name="docs.dir" location="docs" />
+	
+	<!-- Borra las carpetas generadas -->
+    <target name="clean" description="Borras las carpetas">
+    	<delete dir="${build.dir}" />
+    	<delete dir="${docs.dir}" />
+    </target>
+
+	<!-- Crea los directorios si no existen -->
+    <target name="create" description="Crea los directorios si no existen">
+    	<mkdir dir="${build.dir}" />
+    	<mkdir dir="${docs.dir}" />
+    </target>
+
+	<!-- Compila -->
+    <target name="compile" depends="create" description="Compila la aplicación">
+    	<javac srcdir="${source.dir}" encoding="utf-8" includeantruntime="false" destdir="${build.dir}" />
+    </target>
+
+	<!-- Genera la documentación -->
+    <target name="javadoc" depends="create" description="Genera la documentación con javadoc">
+    	<javadoc sourcepath="${source.dir}" destdir="${docs.dir}" encoding="utf-8" packagenames="*" />
+    </target>
+	
+	<!-- Todas las acciones -->
+	<target name="all" depends="clean, compile, javadoc">
+	</target>
+
+</project>
