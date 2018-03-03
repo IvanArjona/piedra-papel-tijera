@@ -40,6 +40,7 @@ public class GameClientImpl implements GameClient {
 	 * 
 	 * @return true si se ha arrancado, false si no
 	 */
+	@Override
 	public boolean start() {
 		// Inicia el hilo para escuchar al servidor
 		GameClientListener listener = new GameClientListener();
@@ -54,13 +55,15 @@ public class GameClientImpl implements GameClient {
 	 * 
 	 * @param element elemento a mandar
 	 */
+	@Override
 	public void sendElement(GameElement element) {
 		// TODO
 	}
 
 	/**
-	 * Sale del juego.
+	 * Saca al cliente del juego.
 	 */
+	@Override
 	public void disconnect() {
 		// TODO
 	}

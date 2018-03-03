@@ -1,9 +1,4 @@
-/**
- * 
- */
 package es.ubu.lsi.server;
-
-import java.net.InetAddress;
 
 import es.ubu.lsi.common.GameElement;
 
@@ -25,6 +20,7 @@ public class GameServerImpl implements GameServer {
 	/**
 	 * Inicia el servidor.
 	 */
+	@Override
 	public void startup() {
 		// TODO
 	}
@@ -32,6 +28,7 @@ public class GameServerImpl implements GameServer {
 	/**
 	 * Cierra el servidor.
 	 */
+	@Override
 	public void shutdown() {
 		// TODO
 
@@ -42,9 +39,9 @@ public class GameServerImpl implements GameServer {
 	 * 
 	 * @param element elemento a enviar
 	 */
+	@Override
 	public void broadcastRoom(GameElement element) {
 		// TODO
-
 	}
 
 	/**
@@ -52,6 +49,7 @@ public class GameServerImpl implements GameServer {
 	 * 
 	 * @param id id del cliente.
 	 */
+	@Override
 	public void remove(int id) {
 		// TODO
 
@@ -81,11 +79,21 @@ public class GameServerImpl implements GameServer {
 	private class ServerThreadForClient implements Runnable {
 
 		/**
-		 * Espera los mensajes de cada cliente.
+		 * Obtiene el id de la sala en la que está el cliente.
+		 * 
+		 * @return id de la sala
 		 */
+		public int getIdRoom() {
+			// TODO
+			return 0;
+		}
+		
+		/**
+		 * Espera los mensajes del cliente.
+		 */
+		@Override
 		public void run() {
 			// TODO
-			
 		}
 		
 	}
