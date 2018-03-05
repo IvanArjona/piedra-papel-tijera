@@ -1,10 +1,11 @@
 package es.ubu.lsi.common;
 
 /**
- * Posibles resultados de una partida.
+ * Game result.
  * 
- * @author Iván Arjona Alonso
- * @author Álvaro Ruifernandez Palacios
+ * @author Raúl Marticorena
+ * @author Joaquin P. Seco
+ * @author Mario Erro
  *
  */
 public enum GameResult {

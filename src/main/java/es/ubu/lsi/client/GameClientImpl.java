@@ -1,6 +1,10 @@
 package es.ubu.lsi.client;
 
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.net.InetAddress;
+import java.net.Socket;
 import java.net.UnknownHostException;
 
 import es.ubu.lsi.common.GameElement;
@@ -18,6 +22,10 @@ public class GameClientImpl implements GameClient {
 	private final InetAddress server;
 	private final String username;
 	
+	private Socket socket;
+	private ObjectInputStream in;
+	private ObjectOutputStream out;
+	
 	/**
 	 * Constructor del cliente.
 	 * 
@@ -30,9 +38,6 @@ public class GameClientImpl implements GameClient {
 		this.server = InetAddress.getByName(server);
 		this.port = port;
 		this.username = username;
-
-		// Inicia el cliente
-		this.start();
 	}
 	
 	/**
@@ -42,12 +47,20 @@ public class GameClientImpl implements GameClient {
 	 */
 	@Override
 	public boolean start() {
-		// Inicia el hilo para escuchar al servidor
-		GameClientListener listener = new GameClientListener();
-		new Thread(listener).start();
+		try {
+			this.socket = new Socket(this.server, this.port);
+			
+			in = new ObjectInputStream(this.socket.getInputStream());
+			out = new ObjectOutputStream(this.socket.getOutputStream());
+			
+			// Inicia el hilo para escuchar al servidor
+			GameClientListener listener = new GameClientListener();
+			new Thread(listener).start();
 		
-		// TODO: Esto está mal
-		return true;
+			return true;
+		} catch (Exception e) {
+			return false;
+		}
 	}
 
 	/**
@@ -65,7 +78,14 @@ public class GameClientImpl implements GameClient {
 	 */
 	@Override
 	public void disconnect() {
-		// TODO
+		try {
+			// Cierra recursos
+			in.close();
+			out.close();
+			socket.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 	
 	/**
@@ -92,6 +112,18 @@ public class GameClientImpl implements GameClient {
 		
 		// Instancia el cliente
 		GameClient client = new GameClientImpl(server, port, username);
+		
+		// Inicia el cliente
+		if (client.start()) {
+			System.out.println("Iniciado");
+			interfaz(client);
+		} else {
+			System.err.println("El cliente no se ha iniciado");
+		}
+	}
+	
+	private static void interfaz(GameClient client) {
+		System.out.println("");
 	}
 
 	/**
