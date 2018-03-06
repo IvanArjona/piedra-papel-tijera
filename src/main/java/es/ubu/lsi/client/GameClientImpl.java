@@ -1,13 +1,19 @@
 package es.ubu.lsi.client;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
 
+import javax.swing.plaf.synth.SynthSeparatorUI;
+
+import es.ubu.lsi.common.ElementType;
 import es.ubu.lsi.common.GameElement;
+import es.ubu.lsi.common.GameResult;
 
 /**
  * Implementación del cliente.
@@ -48,15 +54,14 @@ public class GameClientImpl implements GameClient {
 	@Override
 	public boolean start() {
 		try {
-			this.socket = new Socket(this.server, this.port);
-			
-			in = new ObjectInputStream(this.socket.getInputStream());
+			socket = new Socket(server, port);
+
 			out = new ObjectOutputStream(this.socket.getOutputStream());
-			
+			in = new ObjectInputStream(this.socket.getInputStream());
+
 			// Inicia el hilo para escuchar al servidor
 			GameClientListener listener = new GameClientListener();
-			new Thread(listener).start();
-		
+
 			return true;
 		} catch (Exception e) {
 			return false;
@@ -70,7 +75,11 @@ public class GameClientImpl implements GameClient {
 	 */
 	@Override
 	public void sendElement(GameElement element) {
-		// TODO
+		try {
+			out.writeObject(element);
+		} catch (IOException e) {
+			System.err.println("Error IO: " + e.getMessage());
+		}
 	}
 
 	/**
@@ -98,6 +107,7 @@ public class GameClientImpl implements GameClient {
 		int port = 1500;
 		String server = "localhost";
 		String username = null;
+		ElementType elementType = null;
 		
 		// Configura el cliente según el número de parámetros
 		if (args.length == 1) {
@@ -109,22 +119,57 @@ public class GameClientImpl implements GameClient {
 			System.err.println("Número de parámetros no válido");
 			System.exit(1);
 		}
-		
+
 		// Instancia el cliente
 		GameClient client = new GameClientImpl(server, port, username);
-		
+
 		// Inicia el cliente
 		if (client.start()) {
 			System.out.println("Iniciado");
-			interfaz(client);
+			System.out.println("Posibles movimientos: PIEDRA, PAPEL, TIJERA.");
+			System.out.println("Salir de la sala: LOGOUT. Apagar el servidor: SHUTDOWN");
+			System.out.println("-------------------------------------------------------");
+			
+			while (elementType != ElementType.LOGOUT) {
+				// Lee el movimiento
+				ElementType elemtType = readMovement();
+				GameElement element = new GameElement(username, elementType);
+				// Envía el movimiento al servidor
+				client.sendElement(element);
+			}
 		} else {
-			System.err.println("El cliente no se ha iniciado");
+			System.err.println("No se ha podido conectar con el servidor");
+			System.exit(1);
 		}
 	}
 	
-	private static void interfaz(GameClient client) {
-		System.out.println("");
+	private static ElementType readMovement() {
+		ElementType elementType = null;
+		System.out.println("Elige tu movimiento: ");
+
+		try {
+			// Lee la entrada por teclado
+			BufferedReader stdIn = new BufferedReader(new InputStreamReader(System.in));
+			String movimiento = stdIn.readLine();
+			
+			// Convierte el movimiento a mayúsculas
+			movimiento = movimiento.toUpperCase();
+						
+			elementType = ElementType.valueOf(movimiento);
+			System.out.println("et: " + elementType.toString());
+			
+		} catch (IllegalArgumentException e) {
+			System.out.println("Movimiento no válido. Vuelve a intentarlo");
+			return readMovement();
+		} catch (IOException e) {
+			System.err.println("Error IO: " + e.getMessage());
+			System.exit(1);
+		}
+		
+		return elementType;
 	}
+	
+
 
 	/**
 	 * Hilo que escucha las respuesta del servidor.
@@ -133,11 +178,45 @@ public class GameClientImpl implements GameClient {
 	 * @author Álvaro Ruifernandez Palacios
 	 * 
 	 */
-	private class GameClientListener implements Runnable {
-
+	private class GameClientListener extends Thread {
+		
+		private String mensaje;
+		
+		public GameClientListener() {
+			// Inicia el hilo
+			this.start();
+		}
+		
+		/**
+		 * Escucha mensajes del servidor.
+		 */
+		@Override
 		public void run() {
-			// TODO
-			
+			while (true) {
+				try {
+					GameResult result = (GameResult) in.readObject();
+					switch (result) {
+					case DRAW:
+						mensaje = "Habeís empatado";
+						break;
+					case LOSE:
+						mensaje = "Has perdido";
+						break;
+					case WAITING:
+						mensaje = "Esperando al otro jugador";
+						break;
+					case WIN:
+						mensaje = "Has ganado!";
+					}
+					System.out.println(mensaje);
+				} catch (ClassNotFoundException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (IOException e) {
+					System.out.println("Se ha cerrado el servidor");
+					System.exit(1);
+				}
+			}
 		}
 		
 	}
