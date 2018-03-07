@@ -104,6 +104,7 @@ public class GameClientImpl implements GameClient {
 			in.close();
 			out.close();
 			socket.close();
+			System.exit(1);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -234,8 +235,7 @@ public class GameClientImpl implements GameClient {
 					e.printStackTrace();
 				} catch (IOException e) {
 					// Desconectado del servidor
-					System.out.println("Partida terminada");
-					System.exit(1);
+					disconnect();
 				}
 			}
 		}

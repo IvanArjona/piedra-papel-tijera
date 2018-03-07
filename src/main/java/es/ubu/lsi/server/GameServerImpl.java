@@ -119,29 +119,45 @@ public class GameServerImpl implements GameServer {
 			ElementType oponentMovement = oponentElement.getElement();
 			ElementType movement = element.getElement();
 
-			if (movement == oponentMovement || oponentMovement == null) {
-				result = GameResult.DRAW;
-			} else {
-				switch (movement) {
-				case PAPEL:
-					result = oponentMovement == ElementType.PIEDRA ? GameResult.WIN : GameResult.LOSE;
-					break;
-				case PIEDRA:
-					result = oponentMovement == ElementType.TIJERA ? GameResult.WIN : GameResult.LOSE;
-					break;
-				case TIJERA:
-					result = oponentMovement == ElementType.PAPEL ? GameResult.WIN : GameResult.LOSE;
-					break;
-				default:
-					result = null;
-					break;
-				}
-			}
+			result = gameWinner(movement, oponentMovement);
+			
 			// Borra el movimiento del oponente para la siguiente partida.
 			movements.set(oponentId, null);
 		}
 		// Envía el resultado al cliente.
 		clients.get(clientId).sendResult(result);
+	}
+	
+	/**
+	 * Determina si el cliente gana, pierde o empata.
+	 * 
+	 * @param movement movimiento del cliente
+	 * @param oponentMovement movimiento del oponente
+	 * @return resultado
+	 */
+	private GameResult gameWinner(ElementType movement, ElementType oponentMovement) {
+		GameResult result;
+		
+		if (movement == oponentMovement || oponentMovement == null) {
+			result = GameResult.DRAW;
+		} else {
+			switch (movement) {
+			case PAPEL:
+				result = oponentMovement == ElementType.PIEDRA ? GameResult.WIN : GameResult.LOSE;
+				break;
+			case PIEDRA:
+				result = oponentMovement == ElementType.TIJERA ? GameResult.WIN : GameResult.LOSE;
+				break;
+			case TIJERA:
+				result = oponentMovement == ElementType.PAPEL ? GameResult.WIN : GameResult.LOSE;
+				break;
+			default:
+				result = null;
+				break;
+			}
+		}
+		
+		return result;
 	}
 
 	/**
