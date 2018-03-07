@@ -22,14 +22,15 @@ import es.ubu.lsi.common.GameResult;
  */
 public class GameClientImpl implements GameClient {
 
+	private int id;
 	private final int port;
 	private final InetAddress server;
 	private final String username;
+	private boolean blocked;
 	
 	private Socket socket;
 	private ObjectInputStream in;
 	private ObjectOutputStream out;
-	private GameElement gameElement;
 	
 	/**
 	 * Constructor del cliente.
@@ -43,7 +44,7 @@ public class GameClientImpl implements GameClient {
 		this.server = InetAddress.getByName(server);
 		this.port = port;
 		this.username = username;
-		this.gameElement = null;
+		this.blocked = false;
 	}
 	
 	/**
@@ -54,13 +55,18 @@ public class GameClientImpl implements GameClient {
 	@Override
 	public boolean start() {
 		try {
+			// Crea el socket para comunicarse con el servidor
 			socket = new Socket(server, port);
 
+			// Flujos de datos. entrada y salida
 			out = new ObjectOutputStream(this.socket.getOutputStream());
 			in = new ObjectInputStream(this.socket.getInputStream());
 
-			// Recibe GameElement del servidor
-			gameElement = (GameElement) in.readObject();
+			// Recibe el id del servidor
+			id = (Integer) in.readObject();
+			
+			// Envía el nombre de usuario al servidor
+			out.writeObject(username);
 			
 			// Inicia el hilo para escuchar al servidor
 			GameClientListener listener = new GameClientListener();
@@ -79,6 +85,7 @@ public class GameClientImpl implements GameClient {
 	 */
 	@Override
 	public void sendElement(GameElement element) {
+		blocked = true;
 		try {
 			out.writeObject(element);
 		} catch (IOException e) {
@@ -113,18 +120,18 @@ public class GameClientImpl implements GameClient {
 		String server = "localhost";
 		String username = null;
 		ElementType elementType = null;
-		
+				
 		// Configura el cliente según el número de parámetros
 		if (args.length == 1) {
+			username = args[0];
+		} else if (args.length == 2) {
 			server = args[0];
 			username = args[1];
-		} else if (args.length == 2) {
-			username = args[0];
 		} else {
 			System.err.println("Número de parámetros no válido");
 			System.exit(1);
 		}
-
+		
 		// Instancia el cliente
 		GameClientImpl client = new GameClientImpl(server, port, username);
 
@@ -135,19 +142,23 @@ public class GameClientImpl implements GameClient {
 			System.out.println("Salir de la sala: LOGOUT. Apagar el servidor: SHUTDOWN");
 			System.out.println("-------------------------------------------------------");
 			
-			while (elementType != ElementType.LOGOUT) {
+			while (true) {
+				// Espera una respuesta del servidor
+				while (client.blocked) {
+					try {
+						Thread.sleep(1000);
+					} catch (InterruptedException e) {
+						Thread.currentThread().interrupt();
+					}
+				}
+				
 				// Lee el movimiento
 				elementType = readMovement();
-
+				
 				// Envía el movimiento al servidor
-				//client.sendElement(client.gameElement);
-				// TODO: Limpiar esta guarrada
-				GameElement element = client.gameElement;
-				element.setElement(elementType);
+				GameElement element = new GameElement(client.id, elementType);
 				client.sendElement(element);
 			}
-			// Partida terminada
-			client.disconnect();
 		} else {
 			System.err.println("No se ha podido conectar con el servidor");
 			System.exit(1);
@@ -204,15 +215,18 @@ public class GameClientImpl implements GameClient {
 					switch (result) {
 					case DRAW:
 						mensaje = "Habeís empatado";
+						blocked = false;
 						break;
 					case LOSE:
 						mensaje = "Has perdido";
+						blocked = false;
 						break;
 					case WAITING:
 						mensaje = "Esperando al otro jugador";
 						break;
 					case WIN:
 						mensaje = "Has ganado!";
+						blocked = false;
 					}
 					System.out.println(mensaje);
 				} catch (ClassNotFoundException e) {
@@ -220,7 +234,7 @@ public class GameClientImpl implements GameClient {
 					e.printStackTrace();
 				} catch (IOException e) {
 					// Desconectado del servidor
-					System.out.println("Se ha cerrado el servidor");
+					System.out.println("Partida terminada");
 					System.exit(1);
 				}
 			}

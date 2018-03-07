@@ -23,15 +23,22 @@ public class GameServerImpl implements GameServer {
 	
 	private final int port;
 	private List<ServerThreadForClient> clients;
+	private List<GameElement> movements;
 	private int nClients;
 	
 	private ServerSocket socket;
 	
+	/**
+	 * Constructor del servidor.
+	 * 
+	 * @param port puerto
+	 */
 	public GameServerImpl(int port) {
 		this.port = port;
 		this.nClients = 0;
 		this.socket = null;
 		this.clients = new ArrayList<ServerThreadForClient>();
+		this.movements = new ArrayList<GameElement>();
 	}
 	
 	/**
@@ -49,8 +56,10 @@ public class GameServerImpl implements GameServer {
 				// Si id del jugador es impar y no hay nadie en la sala correspondiente,
 				// se le asigna el siguiente id para asignarle a una sala nueva.
 				if (nClients % 2 != 0) {
-					ServerThreadForClient clienteAnterior = clients.get(nClients - 1);
-					if (clienteAnterior == null) {
+					boolean previousAlive = clients.get(nClients - 1).isAlive();
+					if (!previousAlive) {
+						clients.add(nClients, null);
+						movements.add(nClients, null);
 						nClients++;
 					}
 				}
@@ -62,7 +71,8 @@ public class GameServerImpl implements GameServer {
 				clientThread.start();
 				
 				// Añade el cliente a la lista
-				clients.add(clientThread);
+				clients.add(clientId, clientThread);
+				movements.add(clientId, null);
 
 			}
 
@@ -80,7 +90,7 @@ public class GameServerImpl implements GameServer {
 		
 		// Cierra todos los clientes
 		for (ServerThreadForClient client : clients) {
-			client.interrupt();
+			client.logout();
 		}
 		
 		try {
@@ -97,22 +107,56 @@ public class GameServerImpl implements GameServer {
 	 */
 	@Override
 	public void broadcastRoom(GameElement element) {
-		// TODO: Calcula la jugada.
+		int clientId = element.getClientId();
+		int oponentId = clientId + (clientId % 2 == 0 ? 1 : -1);
+		GameResult result;
+		GameElement oponentElement = movements.get(oponentId);
+		
+		if (oponentElement == null) {
+			// El oponente no ha hecho un movimiento
+			result = GameResult.WAITING;
+		} else {
+			ElementType oponentMovement = oponentElement.getElement();
+			ElementType movement = element.getElement();
+
+			if (movement == oponentMovement || oponentMovement == null) {
+				result = GameResult.DRAW;
+			} else {
+				switch (movement) {
+				case PAPEL:
+					result = oponentMovement == ElementType.PIEDRA ? GameResult.WIN : GameResult.LOSE;
+					break;
+				case PIEDRA:
+					result = oponentMovement == ElementType.TIJERA ? GameResult.WIN : GameResult.LOSE;
+					break;
+				case TIJERA:
+					result = oponentMovement == ElementType.PAPEL ? GameResult.WIN : GameResult.LOSE;
+					break;
+				default:
+					result = null;
+					break;
+				}
+			}
+			// Borra el movimiento del oponente para la siguiente partida.
+			movements.set(oponentId, null);
+		}
+		// Envía el resultado al cliente.
+		clients.get(clientId).sendResult(result);
 	}
 
 	/**
-	 * Elimina un cliente.
+	 * Elimina un cliente y su sala.
 	 * 
 	 * @param id id del cliente.
 	 */
 	@Override
 	public void remove(int id) {
 		int roomId = clients.get(id).getIdRoom();
-		List<ServerThreadForClient> room = clients.subList(roomId, roomId + 2);
-
+		List<ServerThreadForClient> room = clients.subList(roomId * 2, roomId * 2 + 2);
+		
 		for (ServerThreadForClient client : room) {
-			if (client != null) {
-				client.interrupt();
+			if (client != null && client.isAlive()) {
+				client.logout();
 			}
 		}
 	}
@@ -145,24 +189,37 @@ public class GameServerImpl implements GameServer {
 		private ObjectOutputStream out;
 		private int room;
 		private int id;
+		private boolean running;
+		private String username;
 		
+		/**
+		 * Constructor del hilo de cada cliente.
+		 * 
+		 * @param client socket del cliente
+		 * @param id id del cliente
+		 */
 		public ServerThreadForClient(Socket client, int id) {
 			this.id = id;
 			this.room = (int) Math.floor(id / 2.0);
+			this.running = true;
 
-			System.out.println("Cliente conectado. Id: " + id + "  Sala: " + room + 
-					" [" + socket.getInetAddress() + ":" + socket.getLocalPort() + "]  ");
+			System.out.println("Cliente conectado. Id: " + id + "  Sala: " + room);
 			
 			try {
 				// Flujos de entrada y salida
-				this.out = new ObjectOutputStream(client.getOutputStream());
-				this.in = new ObjectInputStream(client.getInputStream());
+				out = new ObjectOutputStream(client.getOutputStream());
+				in = new ObjectInputStream(client.getInputStream());
 				
-				// Crea GameElement y se lo envía al cliente
-				GameElement gameElement = new GameElement(id, null);
-				this.out.writeObject(gameElement);
+				// Envia el id al cliente
+				out.writeObject(id);
+				
+				// Recibe el nombre de usuario
+				username = (String) in.readObject();
 			} catch (IOException e) {
 				System.err.println("Error IO: " + e.getMessage());
+			} catch (ClassNotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
 			}
 		}
 		
@@ -180,16 +237,12 @@ public class GameServerImpl implements GameServer {
 		 */
 		@Override
 		public void run() {
-			GameResult result;
-			ElementType elementType;
 			try {
-				while (!interrupted()) {
+				while (running) {
 					GameElement element = (GameElement) in.readObject();
-					System.out.println(id + "[" + room + "]: " + element.toString());
+					System.out.println(username + "[" + room + "]: " + element.toString());
 
-					elementType = element.getElement();
-
-					switch (elementType) {
+					switch (element.getElement()) {
 					case SHUTDOWN:
 						// Cierra el servidor
 						shutdown();
@@ -199,19 +252,32 @@ public class GameServerImpl implements GameServer {
 						remove(id);
 						break;
 					default:
-						result = GameResult.WIN;
-						out.writeObject(result);
+						movements.set(id, element);
+						broadcastRoom(element);
 						break;
 					}
 				}
-				// Cierra recursos
-				in.close();
-				out.close();
-			} catch (Exception e) {
-				System.out.println("Cliente desconectado");
-			} catch (Throwable e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+			} catch (IOException | ClassNotFoundException e) {
+				// Salta al cerrar la sila out. No hacer nada
+			}
+		}
+		
+		/**
+		 * Envía el resultado al cliente.
+		 * 
+		 * @param result resultado
+		 */
+		private void sendResult(GameResult result) {
+			try {
+				out.writeObject(result);
+				// Si espera vuelve a comprobar la jugada en 1 segundo
+				if (result == GameResult.WAITING) {
+					GameElement element = movements.get(id);
+					Thread.sleep(1000);
+					broadcastRoom(element);
+				}
+			} catch (IOException | InterruptedException e) {
+				// Se para la ejecución, no hacer nada
 			}
 		}
 		
@@ -219,9 +285,9 @@ public class GameServerImpl implements GameServer {
 		 * Al lanzar una interrupción cierra los streams
 		 * de entrada y salida, y para la ejecución del hilo.
 		 */
-		@Override
-		public void interrupt() {
-			super.interrupt();
+		private void logout() {
+			running = false;
+			System.out.println(username + " desconectado. Id: " + id + "  Sala: " + room);
 			try {
 				in.close();
 				out.close();
@@ -230,7 +296,6 @@ public class GameServerImpl implements GameServer {
 				e.printStackTrace();
 			}
 		}
-		
 	}
 
 }
