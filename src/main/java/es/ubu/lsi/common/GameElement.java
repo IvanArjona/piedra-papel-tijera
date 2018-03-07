@@ -20,17 +20,17 @@ public class GameElement implements Serializable {
 	/** Type. */
 	private ElementType element;
 		
-	/** Client username. */
-	private String clientUsername;
+	/** Client id. */
+	private int clientId;
 	
 	/**
 	 * Constructor.
 	 * 
-	 * @param username nombre de usuario del cliente
+	 * @param id client id
 	 * @param element element
 	 */
-	public GameElement(String username, ElementType element) {
-		this.setClientUsername(username);
+	public GameElement(int id, ElementType element) {
+		this.setClientId(id);
 		this.setElement(element);
 	}
 	
@@ -55,10 +55,10 @@ public class GameElement implements Serializable {
 	/**
 	 * Gets id.
 	 * 
-	 * @return sender username
+	 * @return sender id
 	 */
-	public String getClientUsername() {
-		return clientUsername;
+	public int getClientId() {
+		return clientId;
 	}
 
 	/**
@@ -67,14 +67,14 @@ public class GameElement implements Serializable {
 	 * @param id sender id
 	 * 
 	 */
-	private void setClientUsername(String username) {
-		this.clientUsername = username;
+	private void setClientId(int id) {
+		this.clientId = id;
 	}
 	
 
 	@Override
 	public String toString() {
-		return "GameElement [element=" + element + ", clientId=" + clientUsername + "]";
+		return "GameElement [element=" + element + ", clientId=" + clientId + "]";
 	}
 }
 

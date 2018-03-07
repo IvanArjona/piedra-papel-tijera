@@ -9,8 +9,6 @@ import java.net.InetAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
 
-import javax.swing.plaf.synth.SynthSeparatorUI;
-
 import es.ubu.lsi.common.ElementType;
 import es.ubu.lsi.common.GameElement;
 import es.ubu.lsi.common.GameResult;
@@ -31,6 +29,7 @@ public class GameClientImpl implements GameClient {
 	private Socket socket;
 	private ObjectInputStream in;
 	private ObjectOutputStream out;
+	private GameElement gameElement;
 	
 	/**
 	 * Constructor del cliente.
@@ -44,6 +43,7 @@ public class GameClientImpl implements GameClient {
 		this.server = InetAddress.getByName(server);
 		this.port = port;
 		this.username = username;
+		this.gameElement = null;
 	}
 	
 	/**
@@ -59,8 +59,12 @@ public class GameClientImpl implements GameClient {
 			out = new ObjectOutputStream(this.socket.getOutputStream());
 			in = new ObjectInputStream(this.socket.getInputStream());
 
+			// Recibe GameElement del servidor
+			gameElement = (GameElement) in.readObject();
+			
 			// Inicia el hilo para escuchar al servidor
 			GameClientListener listener = new GameClientListener();
+			listener.start();
 
 			return true;
 		} catch (Exception e) {
@@ -87,6 +91,7 @@ public class GameClientImpl implements GameClient {
 	 */
 	@Override
 	public void disconnect() {
+		System.out.println("Partida terminada");
 		try {
 			// Cierra recursos
 			in.close();
@@ -121,22 +126,28 @@ public class GameClientImpl implements GameClient {
 		}
 
 		// Instancia el cliente
-		GameClient client = new GameClientImpl(server, port, username);
+		GameClientImpl client = new GameClientImpl(server, port, username);
 
 		// Inicia el cliente
 		if (client.start()) {
-			System.out.println("Iniciado");
+			System.out.println("Entrando al juego como " + username);
 			System.out.println("Posibles movimientos: PIEDRA, PAPEL, TIJERA.");
 			System.out.println("Salir de la sala: LOGOUT. Apagar el servidor: SHUTDOWN");
 			System.out.println("-------------------------------------------------------");
 			
 			while (elementType != ElementType.LOGOUT) {
 				// Lee el movimiento
-				ElementType elemtType = readMovement();
-				GameElement element = new GameElement(username, elementType);
+				elementType = readMovement();
+
 				// Envía el movimiento al servidor
+				//client.sendElement(client.gameElement);
+				// TODO: Limpiar esta guarrada
+				GameElement element = client.gameElement;
+				element.setElement(elementType);
 				client.sendElement(element);
 			}
+			// Partida terminada
+			client.disconnect();
 		} else {
 			System.err.println("No se ha podido conectar con el servidor");
 			System.exit(1);
@@ -156,9 +167,9 @@ public class GameClientImpl implements GameClient {
 			movimiento = movimiento.toUpperCase();
 						
 			elementType = ElementType.valueOf(movimiento);
-			System.out.println("et: " + elementType.toString());
 			
 		} catch (IllegalArgumentException e) {
+			// Vuelve a pedir el movimiento
 			System.out.println("Movimiento no válido. Vuelve a intentarlo");
 			return readMovement();
 		} catch (IOException e) {
@@ -181,11 +192,6 @@ public class GameClientImpl implements GameClient {
 	private class GameClientListener extends Thread {
 		
 		private String mensaje;
-		
-		public GameClientListener() {
-			// Inicia el hilo
-			this.start();
-		}
 		
 		/**
 		 * Escucha mensajes del servidor.
@@ -213,6 +219,7 @@ public class GameClientImpl implements GameClient {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				} catch (IOException e) {
+					// Desconectado del servidor
 					System.out.println("Se ha cerrado el servidor");
 					System.exit(1);
 				}
