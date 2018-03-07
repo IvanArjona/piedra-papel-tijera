@@ -20,18 +20,19 @@ import es.ubu.lsi.common.GameResult;
  *
  */
 public class GameServerImpl implements GameServer {
-	
+
 	private final int port;
 	private List<ServerThreadForClient> clients;
 	private List<GameElement> movements;
 	private int nClients;
-	
+
 	private ServerSocket socket;
-	
+
 	/**
 	 * Constructor del servidor.
 	 * 
-	 * @param port puerto
+	 * @param port
+	 *            puerto
 	 */
 	public GameServerImpl(int port) {
 		this.port = port;
@@ -40,7 +41,7 @@ public class GameServerImpl implements GameServer {
 		this.clients = new ArrayList<ServerThreadForClient>();
 		this.movements = new ArrayList<GameElement>();
 	}
-	
+
 	/**
 	 * Inicia el servidor.
 	 */
@@ -51,7 +52,7 @@ public class GameServerImpl implements GameServer {
 
 			while (true) {
 				Socket clientSocket = socket.accept();
-				
+
 				// Asigna un id al cliente
 				// Si id del jugador es impar y no hay nadie en la sala correspondiente,
 				// se le asigna el siguiente id para asignarle a una sala nueva.
@@ -63,13 +64,13 @@ public class GameServerImpl implements GameServer {
 						nClients++;
 					}
 				}
-				
+
 				int clientId = nClients++;
-				
+
 				// Lanza un hilo por cada cliente
 				ServerThreadForClient clientThread = new ServerThreadForClient(clientSocket, clientId);
 				clientThread.start();
-				
+
 				// Añade el cliente a la lista
 				clients.add(clientId, clientThread);
 				movements.add(clientId, null);
@@ -87,12 +88,10 @@ public class GameServerImpl implements GameServer {
 	@Override
 	public void shutdown() {
 		System.out.println("Cerrando servidor");
-		
+
 		// Cierra todos los clientes
-		for (ServerThreadForClient client : clients) {
-			client.logout();
-		}
-		
+		clients.stream().forEach(ServerThreadForClient::logout);
+
 		try {
 			socket.close();
 		} catch (IOException e) {
@@ -103,7 +102,8 @@ public class GameServerImpl implements GameServer {
 	/**
 	 * Envía un mensaje a todos los clientes de una sala.
 	 * 
-	 * @param element elemento a enviar
+	 * @param element
+	 *            elemento a enviar
 	 */
 	@Override
 	public void broadcastRoom(GameElement element) {
@@ -111,7 +111,7 @@ public class GameServerImpl implements GameServer {
 		int oponentId = clientId + (clientId % 2 == 0 ? 1 : -1);
 		GameResult result;
 		GameElement oponentElement = movements.get(oponentId);
-		
+
 		if (oponentElement == null) {
 			// El oponente no ha hecho un movimiento
 			result = GameResult.WAITING;
@@ -147,35 +147,33 @@ public class GameServerImpl implements GameServer {
 	/**
 	 * Elimina un cliente y su sala.
 	 * 
-	 * @param id id del cliente.
+	 * @param id
+	 *            id del cliente.
 	 */
 	@Override
 	public void remove(int id) {
 		int roomId = clients.get(id).getIdRoom();
-		List<ServerThreadForClient> room = clients.subList(roomId * 2, roomId * 2 + 2);
-		
-		for (ServerThreadForClient client : room) {
-			if (client != null && client.isAlive()) {
-				client.logout();
-			}
-		}
+		clients.subList(roomId * 2, roomId * 2 + 2).stream()
+				.filter(c -> c != null && c.isAlive())
+				.forEach(ServerThreadForClient::logout);
 	}
 
 	/**
 	 * Abre la aplicación del servidor.
 	 * 
-	 * @param args argumentos
+	 * @param args
+	 *            argumentos
 	 */
 	public static void main(String[] args) {
 		int port = 1500;
-		
+
 		// Instancia el servidor
 		GameServer server = new GameServerImpl(port);
-		
+
 		// Arranca el servidor
 		server.startup();
 	}
-	
+
 	/**
 	 * Hilo que escucha a cada cliente.
 	 * 
@@ -191,12 +189,14 @@ public class GameServerImpl implements GameServer {
 		private int id;
 		private boolean running;
 		private String username;
-		
+
 		/**
 		 * Constructor del hilo de cada cliente.
 		 * 
-		 * @param client socket del cliente
-		 * @param id id del cliente
+		 * @param client
+		 *            socket del cliente
+		 * @param id
+		 *            id del cliente
 		 */
 		public ServerThreadForClient(Socket client, int id) {
 			this.id = id;
@@ -204,15 +204,15 @@ public class GameServerImpl implements GameServer {
 			this.running = true;
 
 			System.out.println("Cliente conectado. Id: " + id + "  Sala: " + room);
-			
+
 			try {
 				// Flujos de entrada y salida
 				out = new ObjectOutputStream(client.getOutputStream());
 				in = new ObjectInputStream(client.getInputStream());
-				
+
 				// Envia el id al cliente
 				out.writeObject(id);
-				
+
 				// Recibe el nombre de usuario
 				username = (String) in.readObject();
 			} catch (IOException e) {
@@ -222,7 +222,7 @@ public class GameServerImpl implements GameServer {
 				e.printStackTrace();
 			}
 		}
-		
+
 		/**
 		 * Obtiene el id de la sala en la que está el cliente.
 		 * 
@@ -231,7 +231,7 @@ public class GameServerImpl implements GameServer {
 		public int getIdRoom() {
 			return room;
 		}
-		
+
 		/**
 		 * Espera los mensajes del cliente.
 		 */
@@ -261,11 +261,12 @@ public class GameServerImpl implements GameServer {
 				// Salta al cerrar la sila out. No hacer nada
 			}
 		}
-		
+
 		/**
 		 * Envía el resultado al cliente.
 		 * 
-		 * @param result resultado
+		 * @param result
+		 *            resultado
 		 */
 		private void sendResult(GameResult result) {
 			try {
@@ -280,10 +281,10 @@ public class GameServerImpl implements GameServer {
 				// Se para la ejecución, no hacer nada
 			}
 		}
-		
+
 		/**
-		 * Al lanzar una interrupción cierra los streams
-		 * de entrada y salida, y para la ejecución del hilo.
+		 * Al lanzar una interrupción cierra los streams de entrada y salida, y para la
+		 * ejecución del hilo.
 		 */
 		private void logout() {
 			running = false;
