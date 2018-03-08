@@ -27,11 +27,11 @@ public class GameClientImpl implements GameClient {
 	private final InetAddress server;
 	private final String username;
 	private boolean blocked;
-	
+
 	private Socket socket;
 	private ObjectInputStream in;
 	private ObjectOutputStream out;
-	
+
 	/**
 	 * Constructor del cliente.
 	 * 
@@ -46,7 +46,7 @@ public class GameClientImpl implements GameClient {
 		this.username = username;
 		this.blocked = false;
 	}
-	
+
 	/**
 	 * Inicia el cliente.
 	 * 
@@ -61,19 +61,20 @@ public class GameClientImpl implements GameClient {
 			// Flujos de datos. entrada y salida
 			out = new ObjectOutputStream(this.socket.getOutputStream());
 			in = new ObjectInputStream(this.socket.getInputStream());
-
+			
 			// Recibe el id del servidor
 			id = (Integer) in.readObject();
 			
 			// Envía el nombre de usuario al servidor
 			out.writeObject(username);
-			
+
 			// Inicia el hilo para escuchar al servidor
 			GameClientListener listener = new GameClientListener();
 			listener.start();
 
 			return true;
 		} catch (Exception e) {
+			// No se ha iniciado
 			return false;
 		}
 	}
@@ -109,7 +110,7 @@ public class GameClientImpl implements GameClient {
 			e.printStackTrace();
 		}
 	}
-	
+
 	/**
 	 * Abre la aplicación del cliente.
 	 * 
@@ -121,7 +122,7 @@ public class GameClientImpl implements GameClient {
 		String server = "localhost";
 		String username = null;
 		ElementType elementType = null;
-				
+
 		// Configura el cliente según el número de parámetros
 		if (args.length == 1) {
 			username = args[0];
@@ -132,17 +133,17 @@ public class GameClientImpl implements GameClient {
 			System.err.println("Número de parámetros no válido");
 			System.exit(1);
 		}
-		
+
 		// Instancia el cliente
 		GameClientImpl client = new GameClientImpl(server, port, username);
 
 		// Inicia el cliente
 		if (client.start()) {
-			System.out.println("Entrando al juego como " + username);
+			System.out.println("Entrando al juego como " + username + ".");
 			System.out.println("Posibles movimientos: PIEDRA, PAPEL, TIJERA.");
-			System.out.println("Salir de la sala: LOGOUT. Apagar el servidor: SHUTDOWN");
+			System.out.println("Salir de la sala: LOGOUT. Apagar el servidor: SHUTDOWN.");
 			System.out.println("-------------------------------------------------------");
-			
+
 			while (true) {
 				// Espera una respuesta del servidor
 				while (client.blocked) {
@@ -152,10 +153,10 @@ public class GameClientImpl implements GameClient {
 						Thread.currentThread().interrupt();
 					}
 				}
-				
+
 				// Lee el movimiento
 				elementType = readMovement();
-				
+
 				// Envía el movimiento al servidor
 				GameElement element = new GameElement(client.id, elementType);
 				client.sendElement(element);
@@ -165,7 +166,12 @@ public class GameClientImpl implements GameClient {
 			System.exit(1);
 		}
 	}
-	
+
+	/**
+	 * Lee el movimiento de una entrada por consola.
+	 * 
+	 * @return movimiento
+	 */
 	private static ElementType readMovement() {
 		ElementType elementType = null;
 		System.out.println("Elige tu movimiento: ");
@@ -177,7 +183,8 @@ public class GameClientImpl implements GameClient {
 			
 			// Convierte el movimiento a mayúsculas
 			movimiento = movimiento.toUpperCase();
-						
+
+			// Obtiene el movimiento a partir de la cadena
 			elementType = ElementType.valueOf(movimiento);
 			
 		} catch (IllegalArgumentException e) {
@@ -185,14 +192,12 @@ public class GameClientImpl implements GameClient {
 			System.out.println("Movimiento no válido. Vuelve a intentarlo");
 			return readMovement();
 		} catch (IOException e) {
-			System.err.println("Error IO: " + e.getMessage());
-			System.exit(1);
+			System.out.println("No se ha podido leer el movimiento");
+			return readMovement();
 		}
 		
 		return elementType;
 	}
-	
-
 
 	/**
 	 * Hilo que escucha las respuesta del servidor.
@@ -202,9 +207,9 @@ public class GameClientImpl implements GameClient {
 	 * 
 	 */
 	private class GameClientListener extends Thread {
-		
+
 		private String mensaje;
-		
+
 		/**
 		 * Escucha mensajes del servidor.
 		 */
@@ -231,15 +236,15 @@ public class GameClientImpl implements GameClient {
 					}
 					System.out.println(mensaje);
 				} catch (ClassNotFoundException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
+					System.err.println("No se ha podido leer el resultado");
+					disconnect();
 				} catch (IOException e) {
 					// Desconectado del servidor
 					disconnect();
 				}
 			}
 		}
-		
+
 	}
 
 }

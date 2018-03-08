@@ -51,6 +51,7 @@ public class GameServerImpl implements GameServer {
 			socket = new ServerSocket(port);
 
 			while (true) {
+				// Acepta la petición del cliente
 				Socket clientSocket = socket.accept();
 
 				// Asigna un id al cliente
@@ -78,7 +79,7 @@ public class GameServerImpl implements GameServer {
 			}
 
 		} catch (IOException e) {
-			System.err.println("Error IO: " + e.getMessage());
+			System.err.println("Error al conectar con el cliente.");
 		}
 	}
 
@@ -95,6 +96,7 @@ public class GameServerImpl implements GameServer {
 		try {
 			socket.close();
 		} catch (IOException e) {
+			System.err.println("No se ha podido cerrar el socket");
 			System.err.println("Error IO: " + e.getMessage());
 		}
 	}
@@ -109,9 +111,16 @@ public class GameServerImpl implements GameServer {
 	public void broadcastRoom(GameElement element) {
 		int clientId = element.getClientId();
 		int oponentId = clientId + (clientId % 2 == 0 ? 1 : -1);
+		GameElement oponentElement;
 		GameResult result;
-		GameElement oponentElement = movements.get(oponentId);
-
+		
+		try {
+			oponentElement = movements.get(oponentId);
+		} catch (IndexOutOfBoundsException e) {
+			// Si el cliente todavía no se ha conectado
+			oponentElement = null;
+		}
+		
 		if (oponentElement == null) {
 			// El oponente no ha hecho un movimiento
 			result = GameResult.WAITING;
@@ -120,24 +129,27 @@ public class GameServerImpl implements GameServer {
 			ElementType movement = element.getElement();
 
 			result = gameWinner(movement, oponentMovement);
-			
+
 			// Borra el movimiento del oponente para la siguiente partida.
 			movements.set(oponentId, null);
 		}
+
 		// Envía el resultado al cliente.
 		clients.get(clientId).sendResult(result);
 	}
-	
+
 	/**
 	 * Determina si el cliente gana, pierde o empata.
 	 * 
-	 * @param movement movimiento del cliente
-	 * @param oponentMovement movimiento del oponente
+	 * @param movement
+	 *            movimiento del cliente
+	 * @param oponentMovement
+	 *            movimiento del oponente
 	 * @return resultado
 	 */
 	private GameResult gameWinner(ElementType movement, ElementType oponentMovement) {
 		GameResult result;
-		
+
 		if (movement == oponentMovement || oponentMovement == null) {
 			result = GameResult.DRAW;
 		} else {
@@ -156,7 +168,7 @@ public class GameServerImpl implements GameServer {
 				break;
 			}
 		}
-		
+
 		return result;
 	}
 
@@ -169,8 +181,8 @@ public class GameServerImpl implements GameServer {
 	@Override
 	public void remove(int id) {
 		int roomId = clients.get(id).getIdRoom();
-		clients.subList(roomId * 2, roomId * 2 + 2).stream()
-				.filter(c -> c != null && c.isAlive())
+		// Cierra los dos clientes de la sala
+		clients.subList(roomId * 2, roomId * 2 + 2).stream().filter(c -> c != null && c.isAlive())
 				.forEach(ServerThreadForClient::logout);
 	}
 
@@ -201,10 +213,10 @@ public class GameServerImpl implements GameServer {
 
 		private ObjectInputStream in;
 		private ObjectOutputStream out;
-		private int room;
-		private int id;
-		private boolean running;
 		private String username;
+		private boolean running;
+		private int id;
+		private int room;
 
 		/**
 		 * Constructor del hilo de cada cliente.
@@ -218,24 +230,24 @@ public class GameServerImpl implements GameServer {
 			this.id = id;
 			this.room = (int) Math.floor(id / 2.0);
 			this.running = true;
-
-			System.out.println("Cliente conectado. Id: " + id + "  Sala: " + room);
+			this.username = null;
 
 			try {
 				// Flujos de entrada y salida
 				out = new ObjectOutputStream(client.getOutputStream());
 				in = new ObjectInputStream(client.getInputStream());
-
+				
 				// Envia el id al cliente
 				out.writeObject(id);
-
+				
 				// Recibe el nombre de usuario
 				username = (String) in.readObject();
+				
+				System.out.format("%s conectado. Id: %d  Sala:%d%n", username, id, room);
 			} catch (IOException e) {
 				System.err.println("Error IO: " + e.getMessage());
 			} catch (ClassNotFoundException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				System.err.println("No se ha podido recibir el nombre de usuario.");
 			}
 		}
 
@@ -256,7 +268,7 @@ public class GameServerImpl implements GameServer {
 			try {
 				while (running) {
 					GameElement element = (GameElement) in.readObject();
-					System.out.println(username + "[" + room + "]: " + element.toString());
+					System.out.format("%s[%d]: %s%n", username, room, element.toString());
 
 					switch (element.getElement()) {
 					case SHUTDOWN:
@@ -274,7 +286,8 @@ public class GameServerImpl implements GameServer {
 					}
 				}
 			} catch (IOException | ClassNotFoundException e) {
-				// Salta al cerrar la sila out. No hacer nada
+				// Salta al cerrar la sala.
+				// Acaba la ejecución, no hacer nada
 			}
 		}
 
@@ -305,12 +318,12 @@ public class GameServerImpl implements GameServer {
 		private void logout() {
 			running = false;
 			System.out.println(username + " desconectado. Id: " + id + "  Sala: " + room);
+			System.out.format("%s desconectado. Id: %d  Sala:%d%n", username, id, room);
 			try {
 				in.close();
 				out.close();
 			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				System.err.println("No se han podido cerrar los recursos");
 			}
 		}
 	}
