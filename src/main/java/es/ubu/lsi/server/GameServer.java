@@ -26,7 +26,7 @@ public interface GameServer {
 	 * 
 	 * @param element elemento a enviar
 	 */
-	public void broadcastRoom(GameElement result);
+	public void broadcastRoom(GameElement element);
 	
 	/**
 	 * Elimina un cliente.
